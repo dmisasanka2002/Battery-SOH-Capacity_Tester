@@ -36,7 +36,7 @@ constexpr uint8_t NTC_ADC_CHANNEL = 2;
 #define RELAY_CH1 26
 #define RELAY_CH2 27
 
-#define SD_CS 5
+#define SD_CS_PIN 5
 #define SD_SCK 18
 #define SD_MISO 19
 #define SD_MOSI 23

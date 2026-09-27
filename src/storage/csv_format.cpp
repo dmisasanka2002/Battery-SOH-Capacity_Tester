@@ -9,6 +9,7 @@ String getCsvHeader()
 {
     return
         "Timestamp,"
+        "Elapsed_ms,"
         "Module Nb.,"
         "Voltage,"
         "Current,"
@@ -21,7 +22,7 @@ String getCsvHeader()
 
 
 // ============================================================
-// CSV DATA ROW
+// CSV ROW
 // ============================================================
 
 String getCsvRow(
@@ -30,17 +31,38 @@ String getCsvRow(
 {
     String row;
 
+    row.reserve(180);
+
+
     row += record.timestamp;
     row += ",";
 
-    row += String(record.moduleNumber);
+
+    row += String(
+        record.elapsedMs
+    );
     row += ",";
 
-    row += String(record.voltage, 6);
+
+    row += String(
+        record.moduleNumber
+    );
     row += ",";
 
-    row += String(record.current, 6);
+
+    row += String(
+        record.voltage,
+        6
+    );
     row += ",";
+
+
+    row += String(
+        record.current,
+        6
+    );
+    row += ",";
+
 
     row += String(
         record.batteryTemperature,
@@ -48,19 +70,26 @@ String getCsvRow(
     );
     row += ",";
 
+
     row += String(
         record.environmentTemperature,
         3
     );
     row += ",";
 
+
     row += record.mode;
     row += ",";
+
 
     row += record.method;
     row += ",";
 
-    row += String(record.cycleNumber);
+
+    row += String(
+        record.cycleNumber
+    );
+
 
     return row;
 }

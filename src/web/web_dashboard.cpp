@@ -1,15 +1,17 @@
 #include "web/web_dashboard.h"
+#include "storage/file_manager.h"
 
 #include <WiFi.h>
 #include <WebServer.h>
 
+#include <FS.h>
+#include <SD.h>
 
 // ============================================================
 // WEB SERVER
 // ============================================================
 
 static WebServer server(80);
-
 
 // ============================================================
 // LIVE DATA
@@ -23,7 +25,6 @@ static float dashboardBatteryTemperature = 0.0f;
 
 static float dashboardEnvironmentTemperature = 0.0f;
 
-
 // ============================================================
 // TEST CONFIGURATION
 // ============================================================
@@ -33,7 +34,6 @@ static uint16_t selectedModuleNumber = 1;
 static uint32_t selectedCycleNumber = 1;
 
 static String selectedMode = "Capacity Test";
-
 
 // ============================================================
 // DASHBOARD HTML
@@ -286,6 +286,45 @@ canvas {
     font-size: 13px;
 
     color: #667085;
+}
+
+/* ============================================================
+   SAVED TEST FILES
+   ============================================================ */
+
+.file-row
+{
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 12px;
+
+    padding: 12px 0;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+
+.file-row span
+{
+    overflow-wrap: anywhere;
+
+    font-size: 14px;
+}
+
+
+.download-button
+{
+    width: auto;
+
+    min-width: 100px;
+
+    margin: 0;
+
+    padding: 8px 14px;
 }
 
 
@@ -640,6 +679,19 @@ System idle.
 
 </div>
 
+<!-- =====================================================
+     SAVED TEST FILES
+     ===================================================== -->
+
+<div class="card">
+
+    <h2>Saved Test Files</h2>
+
+    <div id="fileList">
+        Loading files...
+    </div>
+
+</div>
 
 </div>
 
@@ -1195,6 +1247,126 @@ document.getElementById(
     }
 );
 
+// ============================================================
+// SAVED TEST FILES
+// ============================================================
+
+async function loadFiles()
+{
+    try
+    {
+        const response =
+            await fetch("/api/files");
+
+
+        if (!response.ok)
+        {
+            throw new Error(
+                "File list request failed"
+            );
+        }
+
+
+        const files =
+            await response.json();
+
+
+        const container =
+            document.getElementById(
+                "fileList"
+            );
+
+
+        container.innerHTML = "";
+
+
+        if (files.length === 0)
+        {
+            container.innerHTML =
+                "<p>No CSV files found.</p>";
+
+            return;
+        }
+
+
+        files.forEach(
+            function(file)
+            {
+                const row =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                row.className =
+                    "file-row";
+
+
+                const name =
+                    document.createElement(
+                        "span"
+                    );
+
+                const separator =
+                    file.file.lastIndexOf("/");
+
+                const filename =
+                    file.file.substring(
+                        separator + 1
+                    );
+
+                name.textContent =
+                    filename;
+
+
+                const button =
+                    document.createElement(
+                        "button"
+                    );
+
+
+                button.textContent =
+                    "Download";
+
+
+                button.className =
+                    "download-button";
+
+
+                button.onclick =
+                    function()
+                    {
+                        window.location.href =
+                            "/download?file=" +
+                            encodeURIComponent(
+                                file.file
+                            );
+                    };
+
+
+                row.appendChild(name);
+
+                row.appendChild(button);
+
+                container.appendChild(row);
+            }
+        );
+    }
+    catch(error)
+    {
+        console.error(
+            "File loading error:",
+            error
+        );
+
+
+        document.getElementById(
+            "fileList"
+        ).innerHTML =
+            "<p>Unable to load saved files.</p>";
+    }
+}
+
 
 // ==========================================================
 // START DASHBOARD UPDATES
@@ -1205,6 +1377,7 @@ setInterval(
     500
 );
 
+loadFiles();
 
 updateStatus();
 
@@ -1217,7 +1390,6 @@ updateStatus();
 
 )rawliteral";
 
-
 // ============================================================
 // ROOT
 // ============================================================
@@ -1227,10 +1399,8 @@ static void handleRoot()
     server.send(
         200,
         "text/html",
-        DASHBOARD_HTML
-    );
+        DASHBOARD_HTML);
 }
-
 
 // ============================================================
 // STATUS API
@@ -1243,43 +1413,36 @@ static void handleStatus()
     json += "\"voltage\":";
     json += String(
         dashboardVoltage,
-        6
-    );
+        6);
 
     json += ",";
 
     json += "\"current\":";
     json += String(
         dashboardCurrent,
-        6
-    );
+        6);
 
     json += ",";
 
     json += "\"batteryTemperature\":";
     json += String(
         dashboardBatteryTemperature,
-        3
-    );
+        3);
 
     json += ",";
 
     json += "\"environmentTemperature\":";
     json += String(
         dashboardEnvironmentTemperature,
-        3
-    );
+        3);
 
     json += "}";
-
 
     server.send(
         200,
         "application/json",
-        json
-    );
+        json);
 }
-
 
 // ============================================================
 // CONFIGURATION API
@@ -1291,28 +1454,24 @@ static void handleConfig()
     {
         selectedModuleNumber =
             server.arg(
-                "module"
-            ).toInt();
+                      "module")
+                .toInt();
     }
-
 
     if (server.hasArg("cycle"))
     {
         selectedCycleNumber =
             server.arg(
-                "cycle"
-            ).toInt();
+                      "cycle")
+                .toInt();
     }
-
 
     if (server.hasArg("mode"))
     {
         selectedMode =
             server.arg(
-                "mode"
-            );
+                "mode");
     }
-
 
     String response;
 
@@ -1337,14 +1496,11 @@ static void handleConfig()
     response +=
         selectedMode;
 
-
     server.send(
         200,
         "text/plain",
-        response
-    );
+        response);
 }
-
 
 // ============================================================
 // START TEST
@@ -1355,10 +1511,8 @@ static void handleStartTest()
     server.send(
         200,
         "text/plain",
-        "Test start requested."
-    );
+        "Test start requested.");
 }
-
 
 // ============================================================
 // STOP TEST
@@ -1369,10 +1523,157 @@ static void handleStopTest()
     server.send(
         200,
         "text/plain",
-        "Test stop requested."
-    );
+        "Test stop requested.");
 }
 
+// ============================================================
+// FILE DOWNLOAD
+// ============================================================
+
+static void handleFileDownload()
+{
+    if (!server.hasArg("file"))
+    {
+        server.send(
+            400,
+            "text/plain",
+            "File path missing.");
+
+        return;
+    }
+
+    String path =
+        server.arg("file");
+
+    // --------------------------------------------------------
+    // Basic path protection.
+    //
+    // Only allow paths inside /Module_xxx/
+    // --------------------------------------------------------
+
+    if (!isValidCsvPath(path))
+    {
+        server.send(
+            403,
+            "text/plain",
+            "Invalid CSV file path."
+        );
+
+        return;
+    }
+
+    // Do not allow parent-directory traversal.
+
+    if (path.indexOf("..") >= 0)
+    {
+        server.send(
+            403,
+            "text/plain",
+            "Invalid file path.");
+
+        return;
+    }
+
+    // Only CSV files.
+
+    if (!path.endsWith(".csv"))
+    {
+        server.send(
+            403,
+            "text/plain",
+            "Only CSV files can be downloaded.");
+
+        return;
+    }
+
+    // --------------------------------------------------------
+    // Check existence.
+    // --------------------------------------------------------
+
+    if (!SD.exists(path))
+    {
+        server.send(
+            404,
+            "text/plain",
+            "File not found.");
+
+        return;
+    }
+
+    // --------------------------------------------------------
+    // Open.
+    // --------------------------------------------------------
+
+    File file =
+        SD.open(
+            path,
+            FILE_READ);
+
+    if (!file)
+    {
+        server.send(
+            500,
+            "text/plain",
+            "Could not open file.");
+
+        return;
+    }
+
+    // --------------------------------------------------------
+    // Extract filename.
+    // --------------------------------------------------------
+
+    int slashPosition =
+        path.lastIndexOf('/');
+
+    String filename =
+        path.substring(
+            slashPosition + 1);
+
+    // --------------------------------------------------------
+    // Tell browser to download.
+    // --------------------------------------------------------
+
+    server.sendHeader(
+        "Content-Disposition",
+        "attachment; filename=\"" +
+            filename +
+            "\"");
+
+    // --------------------------------------------------------
+    // Stream file.
+    // --------------------------------------------------------
+
+    size_t sent =
+        server.streamFile(
+            file,
+            "text/csv");
+
+    if (sent != file.size())
+    {
+        Serial.println(
+            "WARNING: File transfer incomplete.");
+    }
+
+    file.close();
+}
+
+// ============================================================
+// FILE LIST API
+// ============================================================
+
+static void handleFileList()
+{
+    String json =
+        getCsvFileListJson();
+
+
+    server.send(
+        200,
+        "application/json",
+        json
+    );
+}
 
 // ============================================================
 // BEGIN
@@ -1383,37 +1684,37 @@ void webDashboardBegin()
     server.on(
         "/",
         HTTP_GET,
-        handleRoot
-    );
-
+        handleRoot);
 
     server.on(
         "/api/status",
         HTTP_GET,
-        handleStatus
-    );
-
+        handleStatus);
 
     server.on(
         "/api/config",
         HTTP_GET,
-        handleConfig
-    );
-
+        handleConfig);
 
     server.on(
         "/api/test/start",
         HTTP_GET,
-        handleStartTest
-    );
-
+        handleStartTest);
 
     server.on(
         "/api/test/stop",
         HTTP_GET,
-        handleStopTest
-    );
+        handleStopTest);
 
+    server.on(
+        "/api/files",
+        HTTP_GET,
+        handleFileList);
+
+    server.on(
+        "/download",
+        HTTP_GET,
+        handleFileDownload);
 
     server.onNotFound(
         []()
@@ -1421,15 +1722,11 @@ void webDashboardBegin()
             server.send(
                 404,
                 "text/plain",
-                "Page not found."
-            );
-        }
-    );
-
+                "Page not found.");
+        });
 
     server.begin();
 }
-
 
 // ============================================================
 // HANDLE REQUESTS
@@ -1440,7 +1737,6 @@ void webDashboardHandle()
     server.handleClient();
 }
 
-
 // ============================================================
 // UPDATE LIVE VALUES
 // ============================================================
@@ -1449,8 +1745,7 @@ void webDashboardUpdate(
     float voltage,
     float current,
     float batteryTemperature,
-    float environmentTemperature
-)
+    float environmentTemperature)
 {
     dashboardVoltage =
         voltage;

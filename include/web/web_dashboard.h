@@ -12,7 +12,7 @@ void webDashboardHandle();
 
 
 // ============================================================
-// LIVE MEASUREMENT UPDATE
+// LIVE MEASUREMENTS
 // ============================================================
 
 void webDashboardUpdate(

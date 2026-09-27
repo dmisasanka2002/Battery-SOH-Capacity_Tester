@@ -2,37 +2,60 @@
 
 #include <Arduino.h>
 
+
 // ============================================================
-// CSV DATA STRUCTURE
+// DATA RECORD
 // ============================================================
 
 struct DataRecord
 {
+    // --------------------------------------------------------
+    // Time
+    // --------------------------------------------------------
+
     String timestamp;
+
+    uint32_t elapsedMs;
+
+
+    // --------------------------------------------------------
+    // Identification
+    // --------------------------------------------------------
 
     uint16_t moduleNumber;
 
+    uint32_t cycleNumber;
+
+
+    // --------------------------------------------------------
+    // Measurements
+    // --------------------------------------------------------
+
     float voltage;
+
     float current;
 
     float batteryTemperature;
+
     float environmentTemperature;
 
-    String mode;
-    String method;
 
-    uint32_t cycleNumber;
+    // --------------------------------------------------------
+    // Test information
+    // --------------------------------------------------------
+
+    String mode;
+
+    String method;
 };
 
 
 // ============================================================
-// CSV FORMAT FUNCTIONS
+// CSV FORMAT
 // ============================================================
 
-// Returns the CSV header.
 String getCsvHeader();
 
-// Converts one DataRecord into one CSV row.
 String getCsvRow(
     const DataRecord& record
 );

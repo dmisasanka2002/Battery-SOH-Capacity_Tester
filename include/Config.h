@@ -21,9 +21,9 @@ constexpr uint32_t LOG_INTERVAL_MS = 100;
 
 constexpr adsGain_t ADS1115_GAIN = GAIN_ONE;
 
-constexpr uint16_t ADC_SAMPLES_PER_MEASUREMENT = 20;
+constexpr uint16_t ADC_SAMPLES_PER_MEASUREMENT = 5;
 
-constexpr uint16_t ADC_SAMPLE_DELAY_MS = 5;
+constexpr uint16_t ADC_SAMPLE_DELAY_MS = 1;
 
 
 // ============================================================

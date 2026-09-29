@@ -23,6 +23,8 @@ bool Ads1115Wrapper::begin(
 
     ads.setGain(
         ADS1115_GAIN);
+    
+    ads.setDataRate(RATE_ADS1115_860SPS);   // NEW: ~1.2 ms/conversion instead of ~8 ms
 
     isInitialized = true;
 

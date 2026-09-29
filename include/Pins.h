@@ -27,7 +27,7 @@ constexpr uint8_t VOLTAGE_ADC_CHANNEL = 0;
 // NTC channel will be added later.
 constexpr uint8_t NTC_ADC_CHANNEL = 2;
 
-
+constexpr uint8_t ENVIRONMENT_NTC_ADC_CHANNEL = 1;   // confirm this wiring — channel 1 is currently free
 
 
 #define RX_PIN 16

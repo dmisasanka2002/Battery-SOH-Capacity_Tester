@@ -1,11 +1,14 @@
 #include "web/web_dashboard.h"
 #include "storage/file_manager.h"
+#include "control/test_controller.h"
 
 #include <WiFi.h>
 #include <WebServer.h>
 
 #include <FS.h>
 #include <SD.h>
+
+#include "Config.h"
 
 // ============================================================
 // WEB SERVER
@@ -1409,97 +1412,108 @@ static void handleRoot()
 static void handleStatus()
 {
     String json = "{";
-
-    json += "\"voltage\":";
-    json += String(
-        dashboardVoltage,
-        6);
-
-    json += ",";
-
-    json += "\"current\":";
-    json += String(
-        dashboardCurrent,
-        6);
-
-    json += ",";
-
-    json += "\"batteryTemperature\":";
-    json += String(
-        dashboardBatteryTemperature,
-        3);
-
-    json += ",";
-
-    json += "\"environmentTemperature\":";
-    json += String(
-        dashboardEnvironmentTemperature,
-        3);
-
+    json += "\"status\":\"" + String(testControllerIsRunning() ? "RUNNING" : "IDLE") + "\",";
+    json += "\"voltage\":" + String(dashboardVoltage, 6) + ",";
+    json += "\"current\":" + String(dashboardCurrent, 6) + ",";
+    json += "\"batteryTemperature\":" + String(dashboardBatteryTemperature, 3) + ",";
+    json += "\"environmentTemperature\":" + String(dashboardEnvironmentTemperature, 3) + ",";
+    json += "\"module\":" + String(testControllerGetModuleNumber()) + ",";
+    json += "\"cycle\":" + String(testControllerGetCycleNumber()) + ",";
+    json += "\"mode\":\"" + testModeDisplayName(testControllerGetMode()) + "\",";
+    json += "\"method\":\"" + testControllerGetCurrentMethodName() + "\",";
+    json += "\"elapsed\":" + String(testControllerGetElapsedSeconds()) + ",";
+    json += "\"file\":\"" + testControllerGetCurrentFilePath() + "\"";
     json += "}";
 
-    server.send(
-        200,
-        "application/json",
-        json);
+    server.send(200, "application/json", json);
 }
 
 // ============================================================
 // CONFIGURATION API
 // ============================================================
 
+static TestMode parseTestMode(const String& text)
+{
+    return (text == "Cycling Test") ? TestMode::CyclingTest : TestMode::CapacityTest;
+}
+
 static void handleConfig()
 {
-    if (server.hasArg("module"))
+    bool hasUpdate = server.hasArg("module") || server.hasArg("cycle") || server.hasArg("mode");
+
+    if (hasUpdate)
     {
-        selectedModuleNumber =
-            server.arg(
-                      "module")
-                .toInt();
+        if (testControllerIsRunning())
+        {
+            server.send(409, "text/plain", "Configuration locked while test is running.");
+            return;
+        }
+
+        uint16_t module = server.hasArg("module") ? server.arg("module").toInt() : testControllerGetModuleNumber();
+        uint16_t cycle  = server.hasArg("cycle")  ? server.arg("cycle").toInt()  : testControllerGetCycleNumber();
+        TestMode mode   = server.hasArg("mode")   ? parseTestMode(server.arg("mode")) : testControllerGetMode();
+
+        testControllerSetConfig(module, cycle, mode);
+
+        server.send(200, "text/plain", "Configuration saved.");
+        return;
     }
 
-    if (server.hasArg("cycle"))
+    String json = "{";
+    json += "\"module\":" + String(testControllerGetModuleNumber()) + ",";
+    json += "\"cycle\":" + String(testControllerGetCycleNumber()) + ",";
+    json += "\"mode\":\"" + testModeDisplayName(testControllerGetMode()) + "\",";
+    json += "\"sequence\":[";
+
+    for (uint8_t i = 0; i < testControllerGetSequenceLength(); i++)
     {
-        selectedCycleNumber =
-            server.arg(
-                      "cycle")
-                .toInt();
+        json += "\"" + testControllerGetSequenceStep(i) + "\"";
+        if (i < testControllerGetSequenceLength() - 1) json += ",";
     }
 
-    if (server.hasArg("mode"))
+    json += "]}";
+
+    server.send(200, "application/json", json);
+}
+
+static void handleSequence()
+{
+    if (testControllerIsRunning())
     {
-        selectedMode =
-            server.arg(
-                "mode");
+        server.send(409, "text/plain", "Sequence locked while test is running.");
+        return;
     }
 
-    String response;
+    if (!server.hasArg("sequence"))
+    {
+        server.send(400, "text/plain", "Missing sequence.");
+        return;
+    }
 
-    response +=
-        "Configuration saved: ";
+    String sequenceString = server.arg("sequence");
+    String parsed[MAX_SEQUENCE_LENGTH];
+    uint8_t count = 0;
+    int start = 0;
 
-    response +=
-        "Module ";
+    while (start < (int)sequenceString.length() && count < MAX_SEQUENCE_LENGTH)
+    {
+        int separator = sequenceString.indexOf('|', start);
+        if (separator == -1)
+        {
+            parsed[count++] = sequenceString.substring(start);
+            break;
+        }
+        parsed[count++] = sequenceString.substring(start, separator);
+        start = separator + 1;
+    }
 
-    response +=
-        selectedModuleNumber;
+    if (count == 0 || !testControllerSetSequence(parsed, count))
+    {
+        server.send(400, "text/plain", "Invalid sequence.");
+        return;
+    }
 
-    response +=
-        ", Cycle ";
-
-    response +=
-        selectedCycleNumber;
-
-    response +=
-        ", Mode ";
-
-    response +=
-        selectedMode;
-
-    server.send(
-        200,
-        "text/plain",
-        response);
+    server.send(200, "text/plain", "Sequence saved.");
 }
 
 // ============================================================
@@ -1508,10 +1522,16 @@ static void handleConfig()
 
 static void handleStartTest()
 {
-    server.send(
-        200,
-        "text/plain",
-        "Test start requested.");
+    if (testControllerIsRunning())
+    {
+        server.send(409, "text/plain", "Test is already running.");
+        return;
+    }
+
+    bool started = testControllerStart();
+
+    server.send(started ? 200 : 500, "text/plain",
+                started ? "Test started." : "Could not start test. Check SD card.");
 }
 
 // ============================================================
@@ -1520,10 +1540,8 @@ static void handleStartTest()
 
 static void handleStopTest()
 {
-    server.send(
-        200,
-        "text/plain",
-        "Test stop requested.");
+    testControllerStop();
+    server.send(200, "text/plain", "Test stopped.");
 }
 
 // ============================================================
@@ -1681,40 +1699,27 @@ static void handleFileList()
 
 void webDashboardBegin()
 {
-    server.on(
-        "/",
-        HTTP_GET,
-        handleRoot);
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(WIFI_AP_SSID, WIFI_AP_PASSWORD);
 
-    server.on(
-        "/api/status",
-        HTTP_GET,
-        handleStatus);
+    Serial.print("Dashboard IP: http://");
+    Serial.println(WiFi.softAPIP());
 
-    server.on(
-        "/api/config",
-        HTTP_GET,
-        handleConfig);
+    server.on("/", HTTP_GET, handleRoot);
 
-    server.on(
-        "/api/test/start",
-        HTTP_GET,
-        handleStartTest);
+    server.on("/api/status", HTTP_GET, handleStatus);
 
-    server.on(
-        "/api/test/stop",
-        HTTP_GET,
-        handleStopTest);
+    server.on("/api/config", HTTP_GET, handleConfig);
 
-    server.on(
-        "/api/files",
-        HTTP_GET,
-        handleFileList);
+    server.on("/api/test/start", HTTP_GET, handleStartTest);
 
-    server.on(
-        "/download",
-        HTTP_GET,
-        handleFileDownload);
+    server.on("/api/test/stop", HTTP_GET, handleStopTest);
+
+    server.on("/api/files", HTTP_GET, handleFileList);
+
+    server.on("/download", HTTP_GET, handleFileDownload);
+
+    server.on("/api/sequence", HTTP_GET, handleSequence);
 
     server.onNotFound(
         []()

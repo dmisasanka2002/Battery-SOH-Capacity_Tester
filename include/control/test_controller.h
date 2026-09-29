@@ -23,3 +23,5 @@ String    testControllerGetCurrentFilePath();
 
 uint8_t testControllerGetSequenceLength();
 String  testControllerGetSequenceStep(uint8_t index);
+
+static String testModeDisplayName(TestMode mode);

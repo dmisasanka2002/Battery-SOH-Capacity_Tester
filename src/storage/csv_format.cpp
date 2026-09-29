@@ -33,62 +33,34 @@ String getCsvRow(
 
     row.reserve(180);
 
-
     row += record.timestamp;
     row += ",";
 
-
-    row += String(
-        record.elapsedMs
-    );
+    row += String(record.elapsedMs);
     row += ",";
 
-
-    row += String(
-        record.moduleNumber
-    );
+    row += String(record.moduleNumber);                
     row += ",";
-
-
-    row += String(
-        record.voltage,
-        6
-    );
+    
+    row += String(record.voltage, 6);                  
     row += ",";
-
-
-    row += String(
-        record.current,
-        6
-    );
+    
+    row += String(record.current, 6);                  
     row += ",";
-
-
-    row += String(
-        record.batteryTemperature,
-        3
-    );
+    
+    row += String(record.batteryTemperature, 3);       
     row += ",";
-
-
-    row += String(
-        record.environmentTemperature,
-        3
-    );
+    
+    row += String(record.environmentTemperature, 3);   
     row += ",";
-
-
-    row += record.mode;
+    
+    row += record.mode;                                
     row += ",";
-
-
-    row += record.method;
+    
+    row += record.method;                              
     row += ",";
-
-
-    row += String(
-        record.cycleNumber
-    );
+    
+    row += String(record.cycleNumber);
 
 
     return row;

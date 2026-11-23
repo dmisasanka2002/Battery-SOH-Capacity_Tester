@@ -24,7 +24,7 @@ static uint32_t testStartMillis = 0;
 static uint32_t stepStartMillis = 0;
 static uint32_t lastLogMillis = 0;
 
-static String testModeDisplayName(TestMode mode)
+String testModeDisplayName(TestMode mode)
 {
     return (mode == TestMode::CapacityTest) ? "Capacity Test" : "Cycling Test";
 }

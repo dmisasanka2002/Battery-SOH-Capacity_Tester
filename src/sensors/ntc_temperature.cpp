@@ -49,6 +49,7 @@ float readBatteryTemperature()
 
 float readEnvironmentTemperature()
 {
+    if (!ENVIRONMENT_NTC_INSTALLED) return NAN;
     return readNtcTemperatureC(ENVIRONMENT_NTC_ADC_CHANNEL);
 }
 

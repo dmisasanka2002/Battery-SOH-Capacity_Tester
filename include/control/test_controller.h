@@ -3,9 +3,10 @@
 #include <Arduino.h>
 
 #include "storage/file_manager.h"   // TestMode
+#include "sensors/live_monitor.h"   // LiveReading
 
 void testControllerBegin();
-void testControllerUpdate();
+void testControllerUpdate(const LiveReading& reading);
 
 bool testControllerStart();
 void testControllerStop();

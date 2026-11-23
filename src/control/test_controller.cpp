@@ -9,6 +9,7 @@
 #include "sensors/ntc_temperature.h"
 #include "control/relay_control.h"
 #include "web/web_dashboard.h"
+#include <sensors/live_monitor.h>
 
 static uint16_t moduleNumber = 1;
 static uint16_t cycleNumber = 1;
@@ -131,9 +132,22 @@ uint32_t testControllerGetElapsedSeconds()
     return (millis() - testStartMillis) / 1000;
 }
 
-void testControllerUpdate()
+void testControllerUpdate(const LiveReading& reading)
 {
     if (!testRunning) return;
+
+    DataRecord record;
+    record.timestamp = reading.timestamp;
+    record.moduleNumber = moduleNumber;
+    record.cycleNumber = cycleNumber;
+    record.voltage = reading.voltage;
+    record.current = reading.current;
+    record.batteryTemperature = reading.batteryTemperature;
+    record.environmentTemperature = reading.environmentTemperature;
+    record.mode = testModeDisplayName(selectedMode);
+    record.method = testControllerGetCurrentMethodName();
+
+    sdLogger.logRecord(record);
 
     uint32_t now = millis();
 

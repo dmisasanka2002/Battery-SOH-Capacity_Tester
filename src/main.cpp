@@ -6,12 +6,13 @@
 
 #include "sensors/ads1115.h"
 #include "sensors/voltage_sensor.h"
-#include "sensors/ina226.h"
+#include "sensors/acs712.h"
 
 #include "rtc/rtc_manager.h"
 #include "control/test_controller.h"
 #include "storage/sd_logger.h"
 #include "web/web_dashboard.h"
+#include "sensors/live_monitor.h"
 
 void setup()
 {
@@ -35,6 +36,15 @@ void setup()
         while (true) delay(1000);
     }
 
+    // if (!acs712Calibrate())
+    // {
+    //     Serial.println("ERROR: ACS712 zero-current check failed.");
+    //     Serial.println("Check the ACS712 wiring and make sure no current flows at power-up.");
+    //     while (true) delay(1000);
+    // }
+
+    Serial.printf("ACS712 zero-current voltage: %.4f V\n", acs712GetZeroVoltage());
+
     // if (!currentSensor.begin(INA226_I2C_ADDRESS))
     // {
     //     Serial.println("ERROR: INA226 not detected.");
@@ -56,7 +66,22 @@ void setup()
 void loop()
 {
     webDashboardHandle();
-    // testControllerUpdate();
+
+    LiveReading reading;
+
+    if (liveMonitorUpdate(reading))
+    {
+        webDashboardUpdate(reading.voltage,
+                           reading.current,
+                           reading.batteryTemperature,
+                           reading.environmentTemperature);
+
+        // Print before the controller runs so the printed method
+        // matches the method written to the CSV row.
+        liveMonitorPrint(reading, testControllerGetCurrentMethodName());
+
+        testControllerUpdate(reading);
+    }
 
     delay(2);
 }

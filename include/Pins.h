@@ -23,11 +23,9 @@ constexpr uint8_t ADS1115_I2C_ADDRESS = 0x48;
 // ============================================================
 
 constexpr uint8_t VOLTAGE_ADC_CHANNEL = 0;
-
-// NTC channel will be added later.
-constexpr uint8_t NTC_ADC_CHANNEL = 2;
-
-constexpr uint8_t ENVIRONMENT_NTC_ADC_CHANNEL = 1;   // confirm this wiring — channel 1 is currently free
+constexpr uint8_t CURRENT_ADC_CHANNEL = 1;           // ACS712 output
+constexpr uint8_t NTC_ADC_CHANNEL = 2;               // battery NTC
+constexpr uint8_t ENVIRONMENT_NTC_ADC_CHANNEL = 3;   // environment NTC, if fitted
 
 
 #define RX_PIN 16

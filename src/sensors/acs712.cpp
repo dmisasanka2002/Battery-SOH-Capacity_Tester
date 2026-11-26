@@ -7,6 +7,7 @@
 #include "sensors/ads1115.h"
 
 static float zeroVoltage = ACS712_ZERO_CURRENT_VOLTAGE;   // sensor output volts at 0 A
+static bool zeroCalibrated = false;
 
 // Average ADS1115 pin voltage in volts. Returns NAN when the input
 // sits at the bottom of the range or is saturated.
@@ -41,6 +42,7 @@ bool acs712Calibrate()
     }
 
     zeroVoltage = outputVolts;
+    zeroCalibrated = true;
     return true;
 }
 
@@ -51,6 +53,7 @@ float acs712GetZeroVoltage()
 
 float readBatteryCurrent()
 {
+    if (!zeroCalibrated) return NAN;
     float pinVolts = readAveragedPinVolts(ADC_SAMPLES_PER_MEASUREMENT);
 
     if (isnan(pinVolts)) return NAN;

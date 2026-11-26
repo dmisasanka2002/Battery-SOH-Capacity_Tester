@@ -20,13 +20,10 @@ static WebServer server(80);
 // LIVE DATA
 // ============================================================
 
-static float dashboardVoltage = 0.0f;
-
-static float dashboardCurrent = 0.0f;
-
-static float dashboardBatteryTemperature = 0.0f;
-
-static float dashboardEnvironmentTemperature = 0.0f;
+static float dashboardVoltage = NAN;
+static float dashboardCurrent = NAN;
+static float dashboardBatteryTemperature = NAN;
+static float dashboardEnvironmentTemperature = NAN;
 
 // ============================================================
 // TEST CONFIGURATION
@@ -1030,6 +1027,12 @@ function drawPlot()
 // UPDATE NUMERICAL DATA
 // ==========================================================
 
+function formatValue(value, decimals)
+{
+    if (value === null || value === undefined) return "--";
+    return Number(value).toFixed(decimals);
+}
+
 async function updateStatus()
 {
     try
@@ -1044,39 +1047,16 @@ async function updateStatus()
             await response.json();
 
 
-        document.getElementById(
-            "voltage"
-        ).textContent =
-            Number(
-                data.voltage
-            ).toFixed(3);
+        document.getElementById("voltage").textContent = formatValue(data.voltage, 3);
+        document.getElementById("current").textContent = formatValue(data.current, 3);
+        document.getElementById("batteryTemp").textContent = formatValue(data.batteryTemperature, 1);
+        document.getElementById("environmentTemp").textContent = formatValue(data.environmentTemperature, 1);
 
 
-        document.getElementById(
-            "current"
-        ).textContent =
-            Number(
-                data.current
-            ).toFixed(3);
-
-
-        document.getElementById(
-            "batteryTemp"
-        ).textContent =
-            Number(
-                data.batteryTemperature
-            ).toFixed(1);
-
-
-        document.getElementById(
-            "environmentTemp"
-        ).textContent =
-            Number(
-                data.environmentTemperature
-            ).toFixed(1);
-
-
-        addMeasurement(data);
+        if (data.voltage !== null && data.current !== null)
+        {
+            addMeasurement(data);
+        }
 
         drawPlot();
 
@@ -1405,6 +1385,12 @@ static void handleRoot()
         DASHBOARD_HTML);
 }
 
+static String jsonNumber(float value, unsigned int decimals)
+{
+    if (isnan(value) || isinf(value)) return "null";
+    return String(value, decimals);
+}
+
 // ============================================================
 // STATUS API
 // ============================================================
@@ -1413,10 +1399,10 @@ static void handleStatus()
 {
     String json = "{";
     json += "\"status\":\"" + String(testControllerIsRunning() ? "RUNNING" : "IDLE") + "\",";
-    json += "\"voltage\":" + String(dashboardVoltage, 6) + ",";
-    json += "\"current\":" + String(dashboardCurrent, 6) + ",";
-    json += "\"batteryTemperature\":" + String(dashboardBatteryTemperature, 3) + ",";
-    json += "\"environmentTemperature\":" + String(dashboardEnvironmentTemperature, 3) + ",";
+    json += "\"voltage\":" + jsonNumber(dashboardVoltage, 6) + ",";
+    json += "\"current\":" + jsonNumber(dashboardCurrent, 6) + ",";
+    json += "\"batteryTemperature\":" + jsonNumber(dashboardBatteryTemperature, 3) + ",";
+    json += "\"environmentTemperature\":" + jsonNumber(dashboardEnvironmentTemperature, 3) + ",";
     json += "\"module\":" + String(testControllerGetModuleNumber()) + ",";
     json += "\"cycle\":" + String(testControllerGetCycleNumber()) + ",";
     json += "\"mode\":\"" + testModeDisplayName(testControllerGetMode()) + "\",";

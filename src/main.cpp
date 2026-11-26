@@ -36,20 +36,20 @@ void setup()
         while (true) delay(1000);
     }
 
-    // if (!acs712Calibrate())
-    // {
-    //     Serial.println("ERROR: ACS712 zero-current check failed.");
-    //     Serial.println("Check the ACS712 wiring and make sure no current flows at power-up.");
-    //     while (true) delay(1000);
-    // }
-
     Serial.printf("ACS712 zero-current voltage: %.4f V\n", acs712GetZeroVoltage());
 
-    // if (!currentSensor.begin(INA226_I2C_ADDRESS))
-    // {
-    //     Serial.println("ERROR: INA226 not detected.");
-    //     while (true) delay(1000);
-    // }
+        Serial.printf("ACS712 pin voltage (A1): %.1f mV\n",
+                  adcManager.readMillivolts(CURRENT_ADC_CHANNEL));
+
+    if (acs712Calibrate())
+    {
+        Serial.printf("ACS712 zero-current voltage: %.4f V\n", acs712GetZeroVoltage());
+    }
+    else
+    {
+        Serial.println("WARNING: ACS712 zero check failed. Current will show nan.");
+        Serial.println("Expected about 2500 mV on A1 with no current flowing.");
+    }
 
     if (!sdLogger.begin())
     {
